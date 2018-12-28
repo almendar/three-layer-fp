@@ -3,7 +3,6 @@ package realworld.storage
 import cats.Monad
 import cats.data.ReaderT
 import cats.effect.IO
-import threelayer.realworld.storage.StorageMonad.DataHolder
 
 abstract class S3Storage[A] { self =>
 
@@ -29,7 +28,7 @@ object S3Storage {
   }
 
   implicit def instance: StorageMonad[S3Storage] = new StorageMonad[S3Storage] {
-    override def save(path: StorageMonad.Location, dh: StorageMonad.DataHolder): S3Storage[Long] =
+    override def save(path: Location, dh: DataHolder): S3Storage[Long] =
       new S3Storage[Long] {
         override def run: S3ExecEnv[Long] = ReaderT { env =>
           IO.delay {
@@ -39,11 +38,11 @@ object S3Storage {
         }
       }
 
-    override def read(path: StorageMonad.Location): S3Storage[StorageMonad.DataHolder] =
-      new S3Storage[StorageMonad.DataHolder] {
-        override def run: S3ExecEnv[StorageMonad.DataHolder] = ReaderT { env =>
+    override def read(path: Location): S3Storage[DataHolder] =
+      new S3Storage[DataHolder] {
+        override def run: S3ExecEnv[DataHolder] = ReaderT { env =>
           IO.delay {
-            val dataHolder: StorageMonad.DataHolder = DataHolder.apply(s"This is content of file from s3 path: ${path.a}")
+            val dataHolder: DataHolder = DataHolder.apply(s"This is content of file from s3 path: $path")
             println(s"Downloading from path $path ")
             dataHolder
           }

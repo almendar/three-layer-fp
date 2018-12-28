@@ -3,8 +3,6 @@ import cats.effect.{ExitCode, IO, IOApp}
 import cats.implicits._
 import threelayer.realworld.Services
 import threelayer.realworld.metrics.{IncCounter, MetricOp, ReadValue}
-import threelayer.realworld.storage.StorageMonad
-import threelayer.realworld.storage.StorageMonad.{DataHolder, Location}
 
 import scala.util.Random
 
@@ -56,7 +54,7 @@ object Main extends IOApp {
     }
   }
 
-  def readFromS3(location: StorageMonad.Location): Application[DataHolder] = Application { services: Services =>
+  def readFromS3(location: Location): Application[DataHolder] = Application { services: Services =>
     import services.s3Storage._
     runStorageAction { MC.read(location) }
   }
@@ -67,8 +65,8 @@ object Main extends IOApp {
     _ <- bumpCounterMetrics(IncCounter("Http", key.length))
     m1 <- readCounter(ReadValue("Http"))
     _ <- logWarning(s"Number of bytes downloaded $m1")
-    dh <- readFromS3(Location(s"s3://rpp/test/bucket/$key"))
-    bytesSaved <- storeOnLocalDisk(Location("output.txt"), dh)
+    dh <- readFromS3(s"s3://rpp/test/bucket/$key")
+    bytesSaved <- storeOnLocalDisk("output.txt", dh)
     _ <- logWarning(s"Number of bytes saved $bytesSaved")
   } yield ExitCode.Success
 

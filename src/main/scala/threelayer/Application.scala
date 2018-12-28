@@ -22,5 +22,3 @@ object Application {
     override def tailRecM[A, B](a: A)(f: A => Application[Either[A, B]]): Application[B] = ???
   }
 }
-
-

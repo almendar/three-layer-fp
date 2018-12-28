@@ -32,12 +32,13 @@ object MockMetrics {
 
   implicit def instance: MonadMetrics[MockMetrics] =
     (op: MetricOp) =>
-      () => ReaderT { ms: MetricsEnv =>
+      () =>
+        ReaderT { ms: MetricsEnv =>
           op match {
             case IncCounter(name, value) => IO(ms.compute(name, (t: String, u: MetricValue) => u + value))
             case DecCounter(name, value) => IO(ms.compute(name, (t: String, u: MetricValue) => u - value))
             case ReadValue(name)         => IO(ms.get(name))
           }
-        }
+    }
 
 }

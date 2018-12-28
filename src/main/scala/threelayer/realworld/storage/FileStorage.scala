@@ -5,7 +5,6 @@ import java.nio.file._
 import cats.Monad
 import cats.data.ReaderT
 import cats.effect.IO
-import threelayer.realworld.storage.StorageMonad.DataHolder
 
 abstract class FileStorage[A] { self =>
   def run: FileExecEnv[A]
@@ -31,17 +30,17 @@ object FileStorage {
 
   implicit def instance: StorageMonad[FileStorage] = new StorageMonad[FileStorage] {
 
-    override def save(path: StorageMonad.Location, dh: StorageMonad.DataHolder): FileStorage[Long] =
+    override def save(path: Location, dh: DataHolder): FileStorage[Long] =
       new FileStorage[Long] {
         override def run: FileExecEnv[Long] = ReaderT { _ =>
-          IO.delay(Files.copy(dh.stream, Paths.get(path.a), StandardCopyOption.REPLACE_EXISTING))
+          IO.delay(Files.copy(dh.stream, Paths.get(path), StandardCopyOption.REPLACE_EXISTING))
 
         }
       }
-    override def read(path: StorageMonad.Location): FileStorage[StorageMonad.DataHolder] =
-      new FileStorage[StorageMonad.DataHolder] {
-        override def run: FileExecEnv[StorageMonad.DataHolder] = ReaderT { _ =>
-          IO.delay(DataHolder.apply(Paths.get(path.a)))
+    override def read(path: Location): FileStorage[DataHolder] =
+      new FileStorage[DataHolder] {
+        override def run: FileExecEnv[DataHolder] = ReaderT { _ =>
+          IO.delay(DataHolder.apply(Paths.get(path)))
         }
       }
   }
