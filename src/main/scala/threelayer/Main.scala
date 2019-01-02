@@ -1,6 +1,8 @@
 package threelayer
-import cats.effect.{ExitCode, IO, IOApp}
+import cats._
+import cats.effect._
 import cats.implicits._
+import threelayer.domain.{AbExperiments, AlgoTrainer}
 import threelayer.realworld.Services
 import threelayer.realworld.metrics.{IncCounter, MetricOp, ReadValue}
 
@@ -71,6 +73,18 @@ object Main extends IOApp {
   } yield ExitCode.Success
 
   override def run(args: List[String]): IO[ExitCode] = {
-    program.run(Services.mockServices())
+
+    def trainProgram[F[_]: Monad](
+                                   implicit algoTrainer: AlgoTrainer[F],
+                                   abExperiments: AbExperiments[F]): F[Unit] =
+      for {
+        version <- abExperiments.getVersion("algoTag", "tag")
+        _ <- algoTrainer.train(version)
+      } yield ()
+
+    val trainProgramApp = trainProgram[Application].map(_ => ExitCode.Success)
+
+//    program.run(Services.mockServices())
+    trainProgramApp.run(Services.mockServices())
   }
 }

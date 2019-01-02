@@ -4,11 +4,19 @@ import java.time.LocalDateTime
 import java.util.concurrent.ConcurrentHashMap
 
 import cats.Id
+import cats.arrow.FunctionK
 import cats.data.ReaderT
 import cats.effect.IO
 import com.sun.xml.internal.messaging.saaj.util.ByteInputStream
 
 package object threelayer extends Time with DataAccess {
+
+  trait Tranformations[Eff1[_[_]], Eff2[_[_]]] {
+    type Target[_]
+    def apply[A](eff1: Eff1[Target]): Eff2[Target]
+  }
+
+  type InterpreterFor[F[_], G[_]] = FunctionK[G, F]
 
   type Url = String
   type Json = String

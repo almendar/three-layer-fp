@@ -6,4 +6,4 @@ case class TrainConfiguration(tag: String,
                               runId: String,
                               algoArea: String,
                               trainUntilTime: LocalDateTime,
-                              trainingDataSpan: Duration)
+                              trainingDataSpan: java.time.Duration)

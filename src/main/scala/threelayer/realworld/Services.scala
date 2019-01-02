@@ -5,32 +5,23 @@ import java.util.concurrent.ConcurrentHashMap
 
 import cats.Monad
 import cats.effect.IO
-import cats.effect.concurrent.Ref
-import threelayer.realworld.metrics.MockMetrics
 import threelayer.realworld.http.{MockHttp, MonadHttpClient}
 import threelayer.realworld.logging.{JavaLogging, LoggingConfig, MonadLogging}
-import threelayer.realworld.metrics.MonadMetrics
+import threelayer.realworld.metrics.{MockMetrics, MonadMetrics}
 import threelayer.realworld.storage.{FileStorage, S3Storage, StorageMonad}
-import threelayer.{HttpEnv, HttpState, MetricsState, S3Client}
 
-trait InterpreterFor[F[_], Eff[_], A] {
-  def apply(fa: Eff[A]): F[A]
-}
-
-abstract class HttpService {
+abstract class HttpService[G[_]] {
   type HttpEff[_]
   implicit val a: Monad[HttpEff]
   implicit val MH: MonadHttpClient[HttpEff]
-
-  def runHttp[A](ma: HttpEff[A]): IO[A]
+  def runHttp[A]: InterpreterFor[G, HttpEff]
 }
 
-abstract class LoggingService {
+abstract class LoggingService[G[_]] {
   type LogEff[_]
   implicit val b: Monad[LogEff]
   implicit val ML: MonadLogging[LogEff]
-
-  def runLogging[A](clazz: Class[_])(ma: LogEff[A]): IO[A]
+  def runLogging[A](clazz: Class[_]): InterpreterFor[G, LogEff]
 }
 
 abstract class MetricsServic {
@@ -50,8 +41,8 @@ abstract class StorageService {
 
 abstract class Services {
   val s3Client: S3Client
-  val http: HttpService
-  val logging: LoggingService
+  val http: HttpService[IO]
+  val logging: LoggingService[IO]
   val metrics: MetricsServic
   val s3Storage: StorageService
   val fileStorage: StorageService
@@ -68,21 +59,25 @@ object Services {
     val httpEnv: HttpEnv = new ConcurrentHashMap()
     //----------------
 
-    override val http: HttpService = new HttpService {
+    override val http: HttpService[IO] = new HttpService[IO] {
       override type HttpEff[A] = MockHttp[A]
       override implicit val a: Monad[HttpEff] = MockHttp.monadInstance
       override implicit val MH: MonadHttpClient[HttpEff] = MockHttp.instance
 
-      override def runHttp[A](ma: HttpEff[A]): IO[A] = ma.runMockHttp.run(httpEnv)
+      override def runHttp[A]: InterpreterFor[IO, MockHttp] = new InterpreterFor[IO, MockHttp] {
+        override def apply[A](fa: MockHttp[A]): IO[A] = fa.runMockHttp.run(httpEnv)
+      }
     }
 
-    override val logging: LoggingService = new LoggingService {
+    override val logging: LoggingService[IO] = new LoggingService[IO] {
 
       type LogEff[A] = JavaLogging[A]
       implicit val b: Monad[LogEff] = JavaLogging.monadInstance
       implicit val ML: MonadLogging[LogEff] = JavaLogging.instance
 
-      override def runLogging[A](clazz: Class[_])(ma: LogEff[A]): IO[A] = ma.run.run(LoggingConfig(clazz))
+      override def runLogging[A](clazz: Class[_]): InterpreterFor[IO, LogEff] = new InterpreterFor[IO, LogEff] {
+        override def apply[A](ma: LogEff[A]): IO[A] = ma.run.run(LoggingConfig(clazz))
+      }
 
     }
 
