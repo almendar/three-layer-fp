@@ -38,12 +38,12 @@ object JavaLogging {
 
     override def info(s: String): JavaLogging[Unit] = new JavaLogging[Unit] {
       override def run: ReaderT[IO, LoggingConfig, Unit] =
-        ReaderT(x => IO(Logger.getLogger(x.context.getName.toString).info(s)))
+        ReaderT(x => IO(Logger.getLogger(x.context.getName).info(s)))
     }
 
     override def warning(s: String): JavaLogging[Unit] = new JavaLogging[Unit] {
       override def run: ReaderT[IO, LoggingConfig, Unit] =
-        ReaderT(x => IO(Logger.getLogger(x.context.getName.toString).warning(s)))
+        ReaderT(x => IO(Logger.getLogger(x.context.getName).warning(s)))
     }
   }
 }

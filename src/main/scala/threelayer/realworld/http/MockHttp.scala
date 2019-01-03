@@ -1,8 +1,9 @@
 package threelayer.realworld.http
 
-import cats.Monad
+import cats.{Applicative, Monad}
 import cats.data.ReaderT
-import cats.effect.IO
+import cats.effect.{IO, LiftIO}
+import cats.mtl.ApplicativeAsk
 import threelayer.{Data, HttpEnv, Url}
 
 abstract class MockHttp[A] {
@@ -19,6 +20,23 @@ abstract class MockHttp[A] {
 }
 
 object MockHttp {
+
+  implicit val appAsk: ApplicativeAsk[MockHttp, HttpEnv] = new ApplicativeAsk[MockHttp, HttpEnv] {
+    override val applicative: Applicative[MockHttp] = monadInstance
+
+    override def ask: MockHttp[HttpEnv] = new MockHttp[HttpEnv] {
+      override def runMockHttp: ReaderT[IO, HttpEnv, HttpEnv] = ReaderT[IO, HttpEnv, HttpEnv](x => IO.pure(x))
+    }
+    override def reader[A](f: HttpEnv => A): MockHttp[A] = new MockHttp[A] {
+      override def runMockHttp: ReaderT[IO, HttpEnv, A] = ReaderT[IO, HttpEnv, A](x => IO.delay(f(x)))
+    }
+  }
+
+  implicit val liftIO: LiftIO[MockHttp] = new LiftIO[MockHttp] {
+    override def liftIO[A](ioa: IO[A]): MockHttp[A] = new MockHttp[A] {
+      override def runMockHttp: ReaderT[IO, HttpEnv, A] = ReaderT[IO, HttpEnv, A](env => ioa)
+    }
+  }
 
   implicit def monadInstance: Monad[MockHttp] = new Monad[MockHttp] {
     override def flatMap[A, B](fa: MockHttp[A])(f: A => MockHttp[B]): MockHttp[B] = fa.flatMap(f)

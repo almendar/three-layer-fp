@@ -8,6 +8,7 @@ import cats.arrow.FunctionK
 import cats.data.ReaderT
 import cats.effect.IO
 import com.sun.xml.internal.messaging.saaj.util.ByteInputStream
+import threelayer.realworld.Services
 
 package object threelayer extends Time with DataAccess {
 
@@ -17,7 +18,6 @@ package object threelayer extends Time with DataAccess {
   }
 
   type InterpreterFor[F[_], G[_]] = FunctionK[G, F]
-
   type Url = String
   type Json = String
   type Data = String

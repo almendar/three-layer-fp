@@ -1,5 +1,6 @@
 package threelayer
 import cats._
+import cats.data.Kleisli
 import cats.effect._
 import cats.implicits._
 import threelayer.domain.{AbExperiments, AlgoTrainer}
@@ -30,14 +31,15 @@ object Main extends IOApp {
     }
   }
 
-  def readCounter(rv: ReadValue) = Application[MetricValue] { service: Services =>
-    import service.metrics._
-    runMetrics[MetricValue] {
-      for {
-        i <- MC.counter(rv)
-      } yield i
+  def readCounter(rv: ReadValue) =
+    Application[MetricValue] { service: Services =>
+      import service.metrics._
+      runMetrics[MetricValue] {
+        for {
+          i <- MC.counter(rv)
+        } yield i
+      }
     }
-  }
 
   def downloadS3KeyFromWebService: Application[Data] = Application { services: Services =>
     import services.http._
@@ -74,9 +76,7 @@ object Main extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] = {
 
-    def trainProgram[F[_]: Monad](
-                                   implicit algoTrainer: AlgoTrainer[F],
-                                   abExperiments: AbExperiments[F]): F[Unit] =
+    def trainProgram[F[_]: Monad](implicit algoTrainer: AlgoTrainer[F], abExperiments: AbExperiments[F]): F[Unit] =
       for {
         version <- abExperiments.getVersion("algoTag", "tag")
         _ <- algoTrainer.train(version)

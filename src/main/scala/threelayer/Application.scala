@@ -3,8 +3,7 @@ package threelayer
 import cats.Monad
 import cats.data.ReaderT
 import cats.effect.IO
-import cats.mtl.ApplicativeAsk
-import threelayer.realworld.{HttpService, LoggingService, Services}
+import threelayer.realworld.Services
 
 case class Application[A](unwrap: ReaderT[IO, Services, A]) {
   def run(services: Services): IO[A] = unwrap.run(services)
@@ -13,7 +12,6 @@ case class Application[A](unwrap: ReaderT[IO, Services, A]) {
 object Application {
 
   def apply[A](f: Services => IO[A]): Application[A] = Application(ReaderT[IO, Services, A](f))
-
 
   implicit def monadInstance: Monad[Application] = new Monad[Application] {
     override def flatMap[A, B](fa: Application[A])(f: A => Application[B]): Application[B] =
